@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update><sp_widget action="INSERT_OR_UPDATE"><client_script><![CDATA[function($scope,spUtil,$location) {
+  /* widget controller */
+  var c = this;
+	
+	c.catSelect = function(item) {
+		//alert(item);
+		var url = "?id=kb_category&kb_category=" + item;	
+		$location.url(url).replace();
+	}
+	
+	c.hasChildren = function(cat) {
+		return (c.data.categories.hasOwnProperty(cat.sys_id));
+	}
+
+}]]></client_script><controller_as>c</controller_as><css>//For some reason the mouse cursor needs help to change into a pointing finger
+[ng-click],
+[data-ng-click],
+[x-ng-click] {
+    cursor: pointer;
+}
+
+a.category {
+  color: #717171;
+}
+
+.right {
+  //position: absolute;
+  //right: 0px;
+  display:inline;
+  float:right;
+}
+
+.middle {
+  padding-top: 6px;
+}
+
+.list-group-item:hover {
+  
+  background-color:  rgba(153, 204, 255, 0.9);
+}
+.list-group {
+  margin: 0px;
+}
+
+.darken {
+  background-color:  rgba(153, 204, 255, 0.5);
+}
+
+.panel-heading {
+  color:#D5DDE5;;
+  background:#428bca;
+  border-bottom:4px solid #80bfff;
+  border-right: 1px solid #343a45;
+  font-size:20px;
+  padding:15px;
+  text-align:left;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  vertical-align:middle;
+}
+
+.list-group-item {
+  background: transparent;
+  padding-left: 5px;
+}
+
+.cat-icon {
+  height: 25px;
+  width:25px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+  position: absolute;
+  left: 10px;
+  top:7px;
+}
+
+.active {
+  font-weight: bold;
+}
+
+
+// 2nd Level Indent
+.list-group &gt; .list-group {
+  .list-group-item {
+    padding-left: 25px;
+  }
+  .cat-icon {
+    left: 0px;
+  }
+}
+
+// 3rd Level Indent
+.list-group &gt; .list-group &gt; .list-group {
+  .list-group-item {
+    padding-left: 50px;
+    border-bottom: 1px solid rgba(255, 255, 255, 1);
+  }
+  .cat-icon {
+    left: 00px;
+  }
+}
+
+// 4th Level Indent
+.list-group &gt; .list-group &gt; .list-group &gt; .list-group {
+  .list-group-item {
+    padding-left: 75px;
+  }
+  .cat-icon {
+    left: 0px;
+  }
+}</css><data_table>sp_instance</data_table><demo_data/><description/><docs/><field_list/><has_preview>true</has_preview><id>kb_categories_multi_level</id><internal>false</internal><link/><name>KB Categories Multi Level</name><option_schema>[{"displayValue":"Knowledge Base","hint":"Use a specific knowledge base instead of the portal default","name":"knowledge_base","label":"Knowledge Base","type":"reference","value":"kb_knowledge_base","ed":{"reference":"kb_knowledge_base"}}]</option_schema><public>false</public><roles/><script><![CDATA[(function() {
+	data.category_id = $sp.getParameter("kb_category");
+			
+	data.categories = {};
+	data.kb = options.knowledge_base ? options.knowledge_base : $sp.getValue("kb_knowledge_base");
+	
+	if (!data.kb)
+		data.kb = "a7e8a78bff0221009b20ffffffffff17"; //For preview purposes
+	
+	var kc = new GlideRecord('kb_category');
+	kc.addActiveQuery();
+	kc.orderBy('label');
+	kc.query();
+
+	while (kc.next()) {
+		//Dont show category if empty
+		if ($sp.getKBCategoryArticles(kc.getUniqueValue()) == 0)
+			continue;
+		
+		var cat = {};
+		cat.title = kc.label.getDisplayValue();
+		cat.open = isSubCat(kc.sys_id,data.category_id) || data.category_id == kc.sys_id;
+		cat.sys_id = kc.getUniqueValue();
+
+		//Check if category has parent or is top category
+		if (kc.parent_table == 'kb_category')
+			cat.parent = kc.getValue('parent_id');
+		else if (kc.parent_id == data.kb)
+			cat.parent = "top";
+
+		if (!data.categories[cat.parent])
+			data.categories[cat.parent] = [];
+
+		data.categories[cat.parent].push(cat);			
+	}
+	
+	function isSubCat(cat,subcat) { //Check if a category is a subcategory to another
+			if (!subcat)
+				return false;
+		
+			var kc = new GlideRecord('kb_category');
+
+			//Get our subcategory
+			if (kc.get(subcat)) {
+				//See if the main category is one of our parents
+				if (JSUtil.notNil(kc.parent_id)) {
+					if (kc.parent_id == cat)
+						return true;
+					return isSubCat(cat,kc.parent_id);
+				}
+				return false;
+			}
+	}
+})();]]></script><servicenow>false</servicenow><sys_class_name>sp_widget</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2017-05-23 16:17:21</sys_created_on><sys_customer_update>true</sys_customer_update><sys_id>0d6e87570f323200719e489ce1050ead</sys_id><sys_mod_count>54</sys_mod_count><sys_name>KB Categories Multi Level</sys_name><sys_package display_value="Global" source="global">global</sys_package><sys_policy/><sys_replace_on_upgrade>false</sys_replace_on_upgrade><sys_scope display_value="Global">global</sys_scope><sys_update_name>sp_widget_0d6e87570f323200719e489ce1050ead</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2017-06-27 05:40:57</sys_updated_on><template><![CDATA[<script type="text/ng-template" id="nestedCategories">
+   <div ng-repeat-start="cat in data.categories[cat.sys_id]" class="list-group-item">
+      <a class="category" ng-class="{'active':cat.open}" style="display:block;"><span><div style="display:inline" ng-click="c.catSelect(cat.sys_id)">{{cat.title}}</div><div ng-click="cat.open=!cat.open" class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': cat.open, 'glyphicon-chevron-right': !cat.open}" ng-if="c.hasChildren(cat)" ></div></span></a>
+      <div ng-if="data.showHelp" style="font-size:10px">{{cat.tooltip}}</div>
+    </div>
+		<div ng-if="c.hasChildren(cat) && cat.open" ng-repeat-end ng-include="'nestedCategories'" class="darken list-group"></div>
+</script>
+
+<div class="panel panel-primary b">  
+	<div class="panel-heading">
+		${KB Categories}<a class="panel-title"></a>
+	</div>
+  
+  <div class="list-group">  
+    <div ng-repeat-start="cat in data.categories['top']" class="list-group-item">  
+      <a class="category" ng-class="{'active':cat.open}" style="display:block;"><span><div style="display:inline;margin-left:5px;" ng-click="c.catSelect(cat.sys_id)">{{cat.title}}</div><div ng-click="cat.open=!cat.open" class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': cat.open, 'glyphicon-chevron-right': !cat.open}" ng-if="c.hasChildren(cat)" ></div></span></a>
+      <div ng-if="data.showHelp" style="font-size:10px">{{cat.tooltip}}</div>
+    </div>
+		<div ng-if="c.hasChildren(cat) && cat.open" ng-repeat-end ng-include="'nestedCategories'" class="darken list-group"></div>
+	</div>
+</div>
+]]></template></sp_widget></record_update>
